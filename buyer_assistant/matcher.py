@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import re
 from decimal import Decimal
 
 from .conditions import ATTR_CATEGORY, Conditions
@@ -48,6 +49,26 @@ def satisfies(listing, constraints) -> bool:
     return True
 
 
+_TOKEN = re.compile(r"[a-zа-яе0-9]+")
+
+
+def keyword_stem(word: str) -> str:
+    w = word.lower().replace("ё", "е")
+    if len(w) <= 4:
+        return w
+    # срезаем окончание: «компьютерный» ~ «компьютерная», «компьютера»; «детский» ~ «детская», «детского»
+    return w[:-2] if len(w) <= 6 else w[:-3]
+
+
+def matched_keywords(listing, keywords) -> list:
+    """Какие слова запроса встречаются в ЗАГОЛОВКЕ. Заголовок — недоверенный текст: он только разбивается на слова
+    и сверяется с уже проверенными словами покупателя. Не читается моделью, не влияет на фильтры, цену и бюджет."""
+    if not keywords:
+        return []
+    tokens = _TOKEN.findall(str(listing.title)[:200].lower().replace("ё", "е"))
+    return [k for k in keywords if any(t.startswith(keyword_stem(k)) for t in tokens)]
+
+
 def candidates_by_category(catalog, cond: Conditions):
     """Для каждой запрошенной категории: (все в городе, подходящие по ограничениям, отсортированы по цене)."""
     result = {}
@@ -58,8 +79,10 @@ def candidates_by_category(catalog, cond: Conditions):
     return result
 
 
-def enumerate_sets(lists, budget):
-    """Все комплекты (по одному из каждого списка) с суммой <= бюджета. lists отсортированы по цене."""
+def enumerate_sets(lists, budget, rel=None):
+    """Все комплекты (по одному из каждого списка) с суммой <= бюджета. lists отсортированы по цене.
+    Элемент результата: (сумма, ids, суммарная релевантность). rel — {id: число совпавших слов запроса}."""
+    rel = rel or {}
     if not lists or any(not l for l in lists):
         return []
     n = len(lists)
@@ -70,7 +93,7 @@ def enumerate_sets(lists, budget):
 
     def rec(i, total, ids):
         if i == n:
-            out.append((total, tuple(ids)))
+            out.append((total, tuple(ids), sum(rel.get(i, 0) for i in ids)))
             return
         for item in lists[i]:
             t = total + item.price_rub
@@ -85,15 +108,16 @@ def enumerate_sets(lists, budget):
 
 
 def pick_options(sets, limit=3):
-    """Самый дешёвый комплект + максимально непохожие на уже выбранные (при равенстве — дешевле)."""
+    """Первый — самый релевантный запросу (при равенстве — самый дешёвый). Остальные — максимально отличающиеся
+    от уже выбранных, затем по релевантности и цене. Без ключевых слов релевантность везде 0: первый — самый дешёвый."""
     if not sets:
         return []
-    chosen = [min(sets)]
-    pool = [s for s in sets if s != chosen[0]]
+    chosen = [min(sets, key=lambda s: (-s[2], s[0], s[1]))]
+    pool = [s for s in sets if s is not chosen[0]]
     while pool and len(chosen) < limit:
         def key(s):
             dist = min(sum(a != b for a, b in zip(s[1], c[1])) for c in chosen)
-            return (-dist, s[0], s[1])
+            return (-dist, -s[2], s[0], s[1])
         best = min(pool, key=key)
         chosen.append(best)
         pool.remove(best)

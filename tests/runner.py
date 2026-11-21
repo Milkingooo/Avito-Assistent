@@ -44,6 +44,7 @@ def run_scenario(sc, catalog_path, settings, extractor=extract_conditions, log=l
         else:
             reply = "Варианты: " + "; ".join(",".join(o["listing_ids"]) for o in resp["options"])
         if i == len(sc["turns"]) - 1 and sc["want"] and status in ("ok", "no_match"):
-            errors += [f"итог: {e}" for e in check_response(resp, rows, sc["want"])]
+            by_keywords = status == "ok" and "по ключевым словам" in resp["options"][0]["explanation"]
+            errors += [f"итог: {e}" for e in check_response(resp, rows, sc["want"], cheapest_first=not by_keywords)]
         history.append({"role": "assistant", "text": reply})
     return errors

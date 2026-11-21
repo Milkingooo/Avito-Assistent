@@ -373,3 +373,12 @@ class StickyFlagTests(unittest.TestCase):
         d = {"city": "taganrog", "budget_rub": 7000, "categories": [], "unsupported_category": True, "constraints": []}
         c = extract.ground(extract.conditions_from_llm(d), msgs("мне нужен пуфик, Таганрог, 7000 рублей"))
         self.assertTrue(c.category_problem)
+
+
+class BareTrailingBudgetTests(unittest.TestCase):
+    def test_bare_number_at_end(self):
+        c = heuristic.parse(msgs("Компьютерный стол в Таганроге 15000"))
+        self.assertEqual((c.city_id, c.budget_rub, c.categories), ("taganrog", 15000, ["table"]))
+
+    def test_small_bare_number_is_not_budget(self):
+        self.assertIsNone(heuristic.parse(msgs("Стол 2 штуки в Таганроге")).budget_rub)

@@ -11,6 +11,7 @@ from decimal import Decimal, InvalidOperation
 import re
 
 from . import heuristic, llm
+from .matcher import keyword_stem
 from .conditions import ATTR_CATEGORY, CATEGORIES, CITIES, OPS, Conditions, Constraint
 
 SYSTEM_PROMPT = """Ты — модуль разбора запросов покупателя мебели. По диалогу извлеки ТЕКУЩИЕ условия покупки и верни ТОЛЬКО JSON-объект. Ты не ведёшь диалог и не подбираешь товары.
@@ -28,17 +29,21 @@ SYSTEM_PROMPT = """Ты — модуль разбора запросов пок�
 
 Число без единицы длины или температуры («стол до 3000», «за 5000») — это бюджет в рублях, а не ограничение. Ограничение по ширине создавай только при явной единице (см, м, мм, метр), по температуре — только при «К»/«кельвин», по регулировке — только если покупатель говорит о регулировке или высоте.
 
+- "keywords": до 5 слов покупателя о типе, стиле, цвете или назначении товара («компьютерный», «письменный», «белый», «детский»), в нижнем регистре, как в реплике. НЕ включай названия категорий (стол, кресло, лампа), города, числа, единицы, слова про бюджет, ширину, регулировку, температуру. Нет таких слов — [].
+
 Правила диалога: учитывай всю историю. Если покупатель явно изменил условие, действует новое значение, остальные условия сохраняются. Короткий ответ («15 тысяч», «Азов») относится к вопросу ассистента. Ничего не выдумывай: чего нет в диалоге — "unknown" / -1 / пустой список.
 
 Город и бюджет указывай ТОЛЬКО если они прямо названы в диалоге; иначе "unknown" и -1. Не копируй значения из примеров.
 
 Примеры (значения только для иллюстрации формата):
 Диалог: «Лампа до 4500 К, Азов» ->
-{"city":"azov","budget_rub":-1,"categories":["lamp"],"unsupported_category":false,"constraints":[{"attribute":"color_temperature_k","op":"lte","value":4500,"unit":"k"}]}
+{"city":"azov","budget_rub":-1,"categories":["lamp"],"unsupported_category":false,"constraints":[{"attribute":"color_temperature_k","op":"lte","value":4500,"unit":"k"}],"keywords":[]}
 Диалог: «Кресло с регулировкой высоты и стол шире 90 см. Ростов-на-Дону, бюджет 20 тысяч» ->
-{"city":"rostov-na-donu","budget_rub":20000,"categories":["chair","table"],"unsupported_category":false,"constraints":[{"attribute":"adjustable_height","op":"eq","value":1,"unit":"none"},{"attribute":"width_cm","op":"gt","value":90,"unit":"cm"}]}
+{"city":"rostov-na-donu","budget_rub":20000,"categories":["chair","table"],"unsupported_category":false,"constraints":[{"attribute":"adjustable_height","op":"eq","value":1,"unit":"none"},{"attribute":"width_cm","op":"gt","value":90,"unit":"cm"}],"keywords":[]}
+Диалог: «Белый письменный стол в Азове за 8000» ->
+{"city":"azov","budget_rub":8000,"categories":["table"],"unsupported_category":false,"constraints":[],"keywords":["белый","письменный"]}
 Диалог: «Нужен диван» ->
-{"city":"unknown","budget_rub":-1,"categories":[],"unsupported_category":true,"constraints":[]}"""
+{"city":"unknown","budget_rub":-1,"categories":[],"unsupported_category":true,"constraints":[],"keywords":[]}"""
 
 _ATTRS = list(ATTR_CATEGORY)
 RESPONSE_SCHEMA = {
@@ -48,6 +53,7 @@ RESPONSE_SCHEMA = {
         "budget_rub": {"type": "integer", "minimum": -1},
         "categories": {"type": "array", "items": {"type": "string", "enum": list(CATEGORIES)}},
         "unsupported_category": {"type": "boolean"},
+        "keywords": {"type": "array", "maxItems": 5, "items": {"type": "string", "maxLength": 30}},
         "constraints": {
             "type": "array",
             "items": {
@@ -63,7 +69,7 @@ RESPONSE_SCHEMA = {
             },
         },
     },
-    "required": ["city", "budget_rub", "categories", "unsupported_category", "constraints"],
+    "required": ["city", "budget_rub", "categories", "unsupported_category", "constraints", "keywords"],
     "additionalProperties": False,
 }
 
@@ -120,6 +126,9 @@ def conditions_from_llm(data: dict) -> Conditions:
     cond.categories = list(dict.fromkeys(categories))
     cond.category_problem = bool(data.get("unsupported_category", False))
 
+    raw_keywords = data.get("keywords", [])
+    cond.keywords = [k for k in raw_keywords if isinstance(k, str)][:5] if isinstance(raw_keywords, list) else []
+
     if not isinstance(raw_constraints, list):
         raise ExtractionError("constraints не список")
     for item in raw_constraints:
@@ -169,6 +178,22 @@ def _constraint_grounded(c: Constraint, text: str, log) -> bool:
 
 
 _UNSUPPORTED = heuristic.UNSUPPORTED
+_NOT_KEYWORDS = re.compile(r"^(?:стол|кресл|ламп|светильник|таганрог|ростов|азов|ширин|шире|уже|регулир|высот|температур|"
+                           r"кельвин|бюджет|рубл|тысяч|метр|сантиметр|найд|нужн|хочу|подбер)")
+
+
+def _ground_keywords(keywords: list, text: str) -> list:
+    """Оставляем только слова, которые покупатель действительно сказал; служебные и дубли отбрасываем."""
+    user_tokens = re.findall(r"[a-zа-яе0-9]+", text.replace("ё", "е"))
+    result = []
+    for word in keywords:
+        w = word.lower().replace("ё", "е").strip()
+        if not re.fullmatch(r"[а-яе]{3,30}", w) or _NOT_KEYWORDS.match(w) or w in result:
+            continue
+        stem = keyword_stem(w)
+        if any(t.startswith(stem) for t in user_tokens):
+            result.append(w)
+    return result
 
 
 def ground(cond: Conditions, messages: list, log=lambda *_: None) -> Conditions:
@@ -187,6 +212,7 @@ def ground(cond: Conditions, messages: list, log=lambda *_: None) -> Conditions:
             log(f"разбор: город {cond.city_id} не найден в репликах покупателя — отброшен")
             cond.city_id = None
     cond.constraints = [c for c in cond.constraints if _constraint_grounded(c, text, log)]
+    cond.keywords = _ground_keywords(cond.keywords, text)
     last_user = next((m["text"] for m in reversed(messages) if m["role"] == "user"), "")
     last_lower = last_user.lower().replace("ё", "е")
     if _UNSUPPORTED.search(last_lower):

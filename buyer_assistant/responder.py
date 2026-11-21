@@ -5,7 +5,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from .conditions import (ATTR_CATEGORY, ATTR_LABEL, ATTR_UNIT, CATEGORIES, CITIES, Conditions)
-from .matcher import _as_number, candidates_by_category, enumerate_sets, pick_options
+from .matcher import _as_number, candidates_by_category, enumerate_sets, matched_keywords, pick_options
 
 OP_TEXT = {"lt": "менее", "lte": "не более", "gt": "более", "gte": "не менее", "eq": "ровно"}
 ATTR_BY_CATEGORY = {v: k for k, v in ATTR_CATEGORY.items()}
@@ -44,13 +44,22 @@ def _describe(item, cond: Conditions) -> str:
     return text
 
 
+def _keyword_note(item, cond: Conditions) -> str:
+    found = matched_keywords(item, cond.keywords)       # слова — из реплик покупателя, не из заголовка
+    return " [название соответствует запросу: «" + "», «".join(found) + "»]" if found else ""
+
+
 def build_ok(catalog, cond: Conditions, chosen) -> dict:
     by_id = {x.id: x for x in catalog}
     options = []
-    for index, (total, ids) in enumerate(chosen):
+    for index, (total, ids, relevance) in enumerate(chosen):
         items = [by_id[i] for i in ids]
-        lead = "Самый дешёвый из подходящих комплектов." if index == 0 else "Другой набор товаров, тоже в рамках бюджета."
-        parts = "; ".join(_describe(x, cond) for x in items)
+        if index == 0:
+            lead = ("Лучшее совпадение с запросом по ключевым словам среди подходящих комплектов."
+                    if relevance else "Самый дешёвый из подходящих комплектов.")
+        else:
+            lead = "Другой набор товаров, тоже в рамках бюджета."
+        parts = "; ".join(_describe(x, cond) + _keyword_note(x, cond) for x in items)
         explanation = (f"{lead} {parts}. Все товары в городе {CITIES[cond.city_id]}. "
                        f"Итого {rub(total)} при бюджете {rub(cond.budget_rub)} (остаётся {rub(cond.budget_rub - total)}).")
         options.append({"listing_ids": list(ids), "total_rub": total, "explanation": explanation})
@@ -61,7 +70,8 @@ def solve(catalog, cond: Conditions) -> dict:
     """Основные условия известны: вернуть ok с 1–3 комплектами или no_match с объяснением."""
     per_cat = candidates_by_category(catalog, cond)
     lists = [per_cat[c][1] for c in cond.categories]
-    sets = enumerate_sets(lists, cond.budget_rub)
+    relevance = {x.id: len(matched_keywords(x, cond.keywords)) for lst in lists for x in lst}
+    sets = enumerate_sets(lists, cond.budget_rub, relevance)
     if sets:
         return build_ok(catalog, cond, pick_options(sets))
     return {"status": "no_match", "message": _explain_no_match(catalog, cond, per_cat)}

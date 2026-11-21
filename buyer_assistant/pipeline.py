@@ -28,7 +28,7 @@ def process(messages, catalog, settings, deadline, log=lambda *_: None, allow_fa
             extractor=extract_conditions) -> dict:
     cond: Conditions = extractor(messages, settings, deadline, log, allow_fallback)
     log(f"условия: city={cond.city_id} budget={cond.budget_rub} categories={cond.categories} "
-        f"constraints={[(c.attribute, c.op, str(c.value)) for c in cond.constraints]}")
+        f"constraints={[(c.attribute, c.op, str(c.value)) for c in cond.constraints]} keywords={cond.keywords}")
     questions = missing_questions(cond)
     if questions:
         return {"status": "clarify", "questions": questions}

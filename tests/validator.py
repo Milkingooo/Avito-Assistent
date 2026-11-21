@@ -35,7 +35,7 @@ def valid_sets(rows, want):
     return [combo for combo in itertools.product(*per) if sum(r["price_rub"] for r in combo) <= want["budget"]]
 
 
-def check_response(resp, rows, want):
+def check_response(resp, rows, want, cheapest_first=True):
     """want = {"city","budget","cats","cons"}; возвращает список ошибок (пусто — всё верно)."""
     errors = []
     by_id = {r["id"]: r for r in rows}
@@ -73,7 +73,7 @@ def check_response(resp, rows, want):
             seen.add(key)
         if not allowed:
             errors.append("ok, хотя допустимых комплектов нет")
-        elif opts and opts[0]["total_rub"] != min(sum(r["price_rub"] for r in c) for c in allowed):
+        elif cheapest_first and opts and opts[0]["total_rub"] != min(sum(r["price_rub"] for r in c) for c in allowed):
             errors.append("первый вариант не самый дешёвый (возможно, потеряны подходящие товары)")
     elif resp["status"] == "no_match":
         if allowed:

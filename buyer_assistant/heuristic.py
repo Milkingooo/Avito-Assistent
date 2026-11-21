@@ -105,6 +105,10 @@ def _extract_budget(text: str, bare_message: bool):
             mult = 1
         if mult:
             value = int(number * mult)
+    if value is None:
+        leftovers = [_dec(m.group()) for m in re.finditer(NUM, text)]
+        if len(leftovers) == 1 and leftovers[0] >= 1000:      # «Компьютерный стол в Таганроге 15000»
+            value = int(leftovers[0])
     return value
 
 

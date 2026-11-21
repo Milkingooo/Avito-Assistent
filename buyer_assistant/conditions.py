@@ -32,6 +32,7 @@ class Conditions:
     categories: list = field(default_factory=list)
     category_problem: bool = False      # названа неподдерживаемая категория
     constraints: list = field(default_factory=list)
+    keywords: list = field(default_factory=list)   # слова покупателя о типе/стиле товара (для ранжирования)
 
 
 def missing_questions(cond: Conditions) -> list:
