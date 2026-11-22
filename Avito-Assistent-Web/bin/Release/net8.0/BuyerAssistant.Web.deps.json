@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "BuyerAssistant.Web/1.0.0": {
+        "dependencies": {
+          "BuyerAssistant.Core": "1.0.0"
+        },
+        "runtime": {
+          "BuyerAssistant.Web.dll": {}
+        }
+      },
+      "BuyerAssistant.Core/1.0.0": {
+        "runtime": {
+          "BuyerAssistant.Core.dll": {
+            "assemblyVersion": "1.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "BuyerAssistant.Web/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "BuyerAssistant.Core/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

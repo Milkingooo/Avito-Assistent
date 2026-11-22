@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework Condition="'$(NETCoreSdkVersion)' != '' and $([System.Version]::Parse('$(NETCoreSdkVersion.Split(`-`)[0])').Major) &gt;= 10">net10.0</TargetFramework>
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net8.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Avito-Assistent\src\BuyerAssistant.Core\BuyerAssistant.Core.csproj" />
+  </ItemGroup>
+</Project>

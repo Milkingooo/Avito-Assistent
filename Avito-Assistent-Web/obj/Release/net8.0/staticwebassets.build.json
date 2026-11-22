@@ -1,0 +1,77 @@
+{
+  "Version": 1,
+  "Hash": "JkRzTSfSN9mIxYwC5LkXtRqDYSxf+r52rAS6BW5or54=",
+  "Source": "BuyerAssistant.Web",
+  "BasePath": "_content/BuyerAssistant.Web",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "BuyerAssistant.Web/wwwroot",
+      "Source": "BuyerAssistant.Web",
+      "ContentRoot": "/home/user/Avito-Assistent-Web/wwwroot/",
+      "BasePath": "_content/BuyerAssistant.Web",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "/home/user/Avito-Assistent-Web/wwwroot/app.js",
+      "SourceId": "BuyerAssistant.Web",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/user/Avito-Assistent-Web/wwwroot/",
+      "BasePath": "_content/BuyerAssistant.Web",
+      "RelativePath": "app.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/app.js"
+    },
+    {
+      "Identity": "/home/user/Avito-Assistent-Web/wwwroot/index.html",
+      "SourceId": "BuyerAssistant.Web",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/user/Avito-Assistent-Web/wwwroot/",
+      "BasePath": "_content/BuyerAssistant.Web",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/index.html"
+    },
+    {
+      "Identity": "/home/user/Avito-Assistent-Web/wwwroot/styles.css",
+      "SourceId": "BuyerAssistant.Web",
+      "SourceType": "Discovered",
+      "ContentRoot": "/home/user/Avito-Assistent-Web/wwwroot/",
+      "BasePath": "_content/BuyerAssistant.Web",
+      "RelativePath": "styles.css",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/styles.css"
+    }
+  ]
+}
