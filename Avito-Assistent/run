@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+NATIVE_BIN="$ROOT_DIR/bin-linux/BuyerAssistant.Cli"
+APP_DLL="$ROOT_DIR/bin-cli/BuyerAssistant.Cli.dll"
+
+# 1. Если собран автономный (self-contained) бинарник под Linux — запускаем его напрямую (dotnet вообще не нужен!)
+if [ -x "$NATIVE_BIN" ]; then
+    exec "$NATIVE_BIN" "$@"
+fi
+if [ -f "$NATIVE_BIN" ]; then
+    chmod +x "$NATIVE_BIN" 2>/dev/null || true
+    exec "$NATIVE_BIN" "$@"
+fi
+
+# 2. Иначе запускаем через установленный в системе dotnet (подходит .NET 8, 9, 10+)
+export DOTNET_ROLL_FORWARD=Major
+if ! command -v dotnet >/dev/null 2>&1; then
+    echo "ошибка запуска: не найден ни автономный бинарник bin-linux/BuyerAssistant.Cli, ни команда dotnet" >&2
+    exit 2
+fi
+
+if [ ! -f "$APP_DLL" ]; then
+    dotnet build "$ROOT_DIR/src/BuyerAssistant.Cli/BuyerAssistant.Cli.csproj" \
+        -c Release \
+        -o "$ROOT_DIR/bin-cli" \
+        --nologo \
+        -v quiet >&2
+fi
+
+exec dotnet "$APP_DLL" "$@"

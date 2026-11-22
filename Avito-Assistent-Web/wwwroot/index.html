@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ИИ Помощник — Умный подбор комплектов мебели</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Минималистичная верхняя шапка без сторонних логотипов и брендов -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand" id="brand-home" title="Вернуться к диалогу">
+        <span class="brand-name">ИИ Помощник</span>
+        <span class="brand-tag">Подбор мебели</span>
+      </div>
+
+      <div class="topbar-right">
+        <span class="mode-pill"><span class="dot"></span> Подбор комплектов</span>
+
+        <!-- Скрытое аккуратное меню инструментов разработчика (Каталог + CONTRACT JSON) -->
+        <div class="tools-dropdown" id="tools-dropdown">
+          <button type="button" class="icon-menu-btn" id="btn-tools-toggle" title="Разделы: Каталог и CONTRACT JSON" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="1.5"></circle>
+              <circle cx="19" cy="12" r="1.5"></circle>
+              <circle cx="5" cy="12" r="1.5"></circle>
+            </svg>
+          </button>
+          <div class="tools-menu" id="tools-menu" hidden>
+            <div class="tools-menu-label">Навигация и отладка</div>
+            <button type="button" class="tools-item active" data-tab="chat">
+              <span>💬 Диалог с помощником</span>
+            </button>
+            <button type="button" class="tools-item" data-tab="catalog">
+              <span>📦 Каталог объявлений</span>
+              <span id="catalog-count" class="mini-pill">0</span>
+            </button>
+            <button type="button" class="tools-item" data-tab="inspector">
+              <span>{ } CONTRACT JSON</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- РАЗДЕЛ 1: ОСНОВНОЙ ЧАТ + ПРАВЫЙ БЛОК -->
+    <section id="panel-chat" class="tab-panel active">
+      <div class="chat-layout">
+        <!-- Центральная карточка чата как на референсе -->
+        <div class="chat-card">
+          <div class="chat-card-header">
+            <div>
+              <div class="assistant-heading">
+                <h1>Умный Ассистент</h1>
+                <span id="engine-status" class="model-pill"><span class="dot"></span> Проверка...</span>
+              </div>
+              <p class="assistant-sub">Подбор комплектов (стол, кресло, лампа) в Таганроге, Ростове-на-Дону и Азове</p>
+            </div>
+            <button type="button" id="btn-new-dialog" class="btn-outline">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+              </svg>
+              Новый диалог
+            </button>
+          </div>
+
+          <div id="messages-list" class="messages-list">
+            <div class="welcome-state">
+              <div class="welcome-title">Опишите, какую мебель нужно подобрать</div>
+              <div class="welcome-sub">Укажите нужные предметы (стол, кресло, лампа), город и общий бюджет — или выберите готовый пример:</div>
+              <div class="quick-prompts">
+                <button type="button" class="prompt-chip" data-prompt="Лампа с нейтральным светом 4000 К и стол в Азове до 12 000 ₽">Лампа 4000 К и стол в Азове до 12 000 ₽</button>
+                <button type="button" class="prompt-chip" data-prompt="Стол не шире метра, кресло и лампа. Таганрог. До 15 000 ₽ за всё.">Полный комплект в Таганроге до 15 000 ₽</button>
+                <button type="button" class="prompt-chip" data-prompt="Стол не шире метра, кресло и лампа. Таганрог.">Запрос с уточнением бюджета</button>
+                <button type="button" class="prompt-chip" data-prompt="Компьютерный стол в Таганроге 15000">Компьютерный стол (по ключевому слову)</button>
+              </div>
+            </div>
+          </div>
+
+          <form id="chat-form" class="composer">
+            <input
+              id="chat-input"
+              type="text"
+              autocomplete="off"
+              placeholder="Напишите запрос (например: стол, кресло и лампа в Таганроге, бюджет 15000)..."
+              required
+            />
+            <button id="btn-send" type="submit" class="send-btn" title="Отправить запрос" aria-label="Отправить">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </form>
+        </div>
+
+        <!-- Правый информационный блок (условия + лог) -->
+        <aside class="conditions-sidebar">
+          <div class="side-card">
+            <div class="side-card-header">
+              <h3>Текущие условия</h3>
+              <span id="status-badge" class="status-tag neutral">ожидание</span>
+            </div>
+            <dl class="cond-list">
+              <div class="cond-row">
+                <dt>Город</dt>
+                <dd id="cond-city">—</dd>
+              </div>
+              <div class="cond-row">
+                <dt>Бюджет</dt>
+                <dd id="cond-budget">—</dd>
+              </div>
+              <div class="cond-row">
+                <dt>Категории</dt>
+                <dd id="cond-categories">—</dd>
+              </div>
+              <div class="cond-row">
+                <dt>Ограничения</dt>
+                <dd id="cond-constraints">—</dd>
+              </div>
+              <div class="cond-row">
+                <dt>Ключевые слова</dt>
+                <dd id="cond-keywords">—</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="side-card">
+            <div class="side-card-header">
+              <h3>Лог разбора (stderr)</h3>
+            </div>
+            <pre id="pipeline-logs" class="log-box">Ожидание первого запроса...</pre>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- РАЗДЕЛ 2: КАТАЛОГ ОБЪЯВЛЕНИЙ (открывается через меню •••) -->
+    <section id="panel-catalog" class="tab-panel">
+      <div class="section-topbar">
+        <div>
+          <h2>Каталог объявлений</h2>
+          <p class="section-sub">Все позиции из подключённого файла <code>catalog.json</code></p>
+        </div>
+        <button type="button" class="btn-outline js-back-chat">← Вернуться к диалогу</button>
+      </div>
+
+      <div class="catalog-toolbar">
+        <div class="filter-group">
+          <label for="filter-city">Город:</label>
+          <select id="filter-city">
+            <option value="">Все города</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filter-category">Категория:</label>
+          <select id="filter-category">
+            <option value="">Все категории</option>
+          </select>
+        </div>
+        <div class="filter-group search-group">
+          <input id="filter-search" type="search" placeholder="Поиск по ID или названию..." />
+        </div>
+        <div id="catalog-filtered-count" class="catalog-summary"></div>
+      </div>
+
+      <div id="catalog-grid" class="catalog-grid"></div>
+    </section>
+
+    <!-- РАЗДЕЛ 3: CONTRACT JSON ИНСПЕКТОР (открывается через меню •••) -->
+    <section id="panel-inspector" class="tab-panel">
+      <div class="section-topbar">
+        <div>
+          <h2>Проверка CONTRACT JSON</h2>
+          <p class="section-sub">Прямой вызов <code>POST /api/contract</code> по схемам <code>request.schema.json</code> и <code>response.schema.json</code></p>
+        </div>
+        <button type="button" class="btn-outline js-back-chat">← Вернуться к диалогу</button>
+      </div>
+
+      <div class="inspector-grid">
+        <div class="side-card inspector-card">
+          <div class="side-card-header">
+            <h3>Входной JSON (<code>request.schema.json</code>)</h3>
+            <button type="button" id="btn-run-raw" class="btn-primary-sm">Отправить запрос</button>
+          </div>
+          <textarea id="raw-request" spellcheck="false"></textarea>
+        </div>
+        <div class="side-card inspector-card">
+          <div class="side-card-header">
+            <h3>Выходной JSON (<code>response.schema.json</code>)</h3>
+            <span id="raw-status" class="status-tag neutral">готов</span>
+          </div>
+          <pre id="raw-response" class="json-pre">Отправьте сообщение в чате или нажмите «Отправить запрос».</pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Модальное окно «Инфо» по товару -->
+  <div id="item-modal" class="modal-backdrop" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <span id="modal-category" class="cat-tag">Товар</span>
+        <button type="button" id="modal-close" class="modal-close" aria-label="Закрыть">✕</button>
+      </div>
+      <h3 id="modal-title" class="modal-title"></h3>
+      <div id="modal-price" class="modal-price"></div>
+      <div id="modal-meta" class="modal-meta"></div>
+      <div id="modal-attrs" class="modal-attrs"></div>
+      <div id="modal-desc" class="modal-desc"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
